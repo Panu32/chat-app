@@ -1,26 +1,128 @@
 import React, { useState } from 'react'
 import assets from '../assets/assets'
+
 const LoginPage = () => {
+  const [currState, setCurrState] = useState("Sign Up");
+  const [isDataSubmitted, setIsDataSubmitted] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [bio, setBio] = useState("");
 
-  const [currState, setCurrState] = useState("")
+  const onSubmitHandler = (event)=>{
+    event.preventDefault();
+
+    if(currState== 'Sign Up' && !isDataSubmitted){
+      setIsDataSubmitted(true)
+      return;
+    }
+  }
+
+  const toggleState = () => {
+    setCurrState(prev => (prev === "Sign Up" ? "Login" : "Sign Up"));
+    setIsDataSubmitted(false); // reset form when toggled
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (currState === "Sign Up" && !isDataSubmitted) {
+      setIsDataSubmitted(true);
+    } else {
+      // Handle Login or final Sign Up submit with bio
+      console.log({ fullName, email, password, bio });
+      alert("Form submitted!");
+    }
+  };
+
   return (
-    <div className='min-h-screen bg-cover bg-center items-center justify-center gap-8 sm:justify-evenly max-sm:flex-col backdrop-blur-2xl'>
+    <div className='min-h-screen bg-cover bg-center flex items-center justify-center gap-8 sm:justify-evenly max-sm:flex-col backdrop-blur-2xl'>
+      
+      {/* Left Part */}
+      <img src={assets.logo_big} alt="Logo" className='w-[min(30vw,250px)]' />
 
-      {/* left Part */}
-      <img src={assets.logo_big} alt=""  className='w-[min(30vw,250px)]'/>
-
-      {/* right part */}
-
-      <form className='border-2 bg-white/8 text-white border-gray-500 p-6 flex flex-col gap-6 rounded-lg shadow-lg'>
-         <h2 className=''>
+      {/* Right Part */}
+      <form onSubmit={onSubmitHandler}
+        className='border-2 bg-white/10 text-white border-gray-500 p-6 flex flex-col gap-6 rounded-lg shadow-lg min-w-[300px]'
+        
+      >
+        <h2 className='font-medium text-2xl flex justify-between items-center'>
           {currState}
-          </h2>
+
+          {isDataSubmitted &&  <img onClick={()=> setIsDataSubmitted(false)}   src={assets.arrow_icon} alt="Toggle" className='w-5 cursor-pointer'  />}
+          
+        </h2>
+
+        {currState === "Sign Up" && !isDataSubmitted && (
+          <input
+            onChange={(e) => setFullName(e.target.value)}
+            value={fullName}
+            type="text"
+            className='p-2 border border-gray-500 rounded-md focus:outline-none'
+            placeholder='Full Name'
+            required
+          />
+        )}
+
+        {!isDataSubmitted && (
+          <>
+            <input
+              onChange={(e) => setEmail(e.target.value)}
+              value={email}
+              type="email"
+              placeholder='Email Address'
+              required
+              className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500'
+            />
+            <input
+              onChange={(e) => setPassword(e.target.value)}
+              value={password}
+              type="password"
+              placeholder='Password'
+              required
+              className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500'
+            />
+          </>
+        )}
+
+        {currState === "Sign Up" && isDataSubmitted && (
+          <textarea
+            onChange={(e) => setBio(e.target.value)}
+            value={bio}
+            rows={4}
+            className='p-2 border border-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500'
+            placeholder='Provide a short bio...'
+            required
+          />
+        )}
+
+        <button
+          type='submit'
+          className='py-3 bg-gradient-to-r from-purple-400 to-violet-600 text-white rounded-md cursor-pointer'
+        >
+          {currState === "Sign Up"
+            ? (isDataSubmitted ? "Submit Bio" : "Create Account")
+            : "Login Now"}
+        </button>
+
+        <div className='flex items-center gap-2 text-sm text-gray-300'>
+          <input type="checkbox" />
+          <p>Agree to the terms of use & privacy policy.</p>
+        </div>
+
+        <div className='flex flex-col gap-2'>
+            {currState === "Sign Up" ? (
+              <p>Already have an account? <span onClick={()=> {setCurrState("Login"); setIsDataSubmitted(false)}} className='font-medium text-violet-500 cursor-pointer'>Login here</span></p>
+            ): (
+              <p className='text-sm text-gray-600'>Create an account  <span onClick={()=> setCurrState('Sign Up')} className='font-medium text-violet-500 cursor-pointer'>Click here</span></p>
+            
+            )}
+        </div>
+
+
 
       </form>
-
-        
     </div>
-  )
+  );
 }
 
-export default LoginPage
+export default LoginPage;
