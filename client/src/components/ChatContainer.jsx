@@ -94,45 +94,54 @@ const ChatContainer = () => {
         {messages?.map((msg, index) => {
           if (!msg) return null;
           const senderId = msg?.senderId || msg?.sender || msg?.userId;
+          const isMe = senderId === authUser?._id;
 
           return (
             <div
               key={index}
-              className={`flex items-end gap-2 ${
-                senderId === authUser?._id ? "justify-end" : "flex-row-reverse"
+              className={`flex items-end mb-4 ${
+                isMe ? "justify-end" : "justify-start"
               }`}
             >
-              {msg?.image ? (
-                <img
-                  src={msg.image}
-                  alt=""
-                  className="max-w-[230px] border border-grey-700 rounded-lg overflow-hidden mb-8"
-                />
-              ) : (
-                <p
-                  className={`p-2 max-w-[200px] md:text-sm font-light rounded-lg mb-8 break-all bg-violet-500/30 text-white ${
-                    senderId === authUser?._id
-                      ? "rounded-bl-none"
-                      : "rounded-br-none"
-                  }`}
-                >
-                  {msg?.text}
-                </p>
-              )}
-              <div className="text-center text-xs">
+              {/* For other user we keep normal row, for me we reverse */}
+              <div
+                className={`flex items-end gap-2 ${
+                  isMe ? "flex-row-reverse" : "flex-row"
+                }`}
+              >
                 <img
                   src={
-                    senderId === authUser?._id
+                    isMe
                       ? authUser?.profilePic || assets.avatar_icon
                       : selectedUser?.profilePic || assets.avatar_icon
                   }
                   alt=""
                   className="w-7 rounded-full"
                 />
-                <p className="text-grey-500">
-                  {formatMessageTime(msg?.createdAt)}
-                </p>
+                {msg?.image ? (
+                  <img
+                    src={msg.image}
+                    alt=""
+                    className={`max-w-[230px] border border-grey-700 rounded-lg overflow-hidden ${
+                      isMe ? "bg-violet-500/30" : "bg-gray-700/60"
+                    }`}
+                  />
+                ) : (
+                  <p
+                    className={`px-3 py-2 max-w-[230px] md:text-sm font-light rounded-2xl break-all text-white shadow
+                      ${
+                        isMe
+                          ? "bg-violet-500/30 rounded-br-none"
+                          : "bg-gray-700/70 rounded-bl-none"
+                      }`}
+                  >
+                    {msg?.text}
+                  </p>
+                )}
               </div>
+              <p className="text-grey-500 text-[10px] mx-2">
+                {formatMessageTime(msg?.createdAt)}
+              </p>
             </div>
           );
         })}
