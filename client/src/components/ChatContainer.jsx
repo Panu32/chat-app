@@ -11,8 +11,6 @@ const ChatContainer = () => {
     selectedUser,
     setSelectedUser,
     sendMessage,
-    getMessages,
-    setMessages,
   } = useContext(ChatContext);
   const { authUser, onlineUsers } = useContext(AuthContext);
 
@@ -39,10 +37,6 @@ const ChatContainer = () => {
     };
     reader.readAsDataURL(file);
   };
-
-  useEffect(() => {
-    if (selectedUser) getMessages(selectedUser._id);
-  }, [selectedUser]);
 
   useEffect(() => {
     if (scrollEnd.current && messages) {
@@ -103,7 +97,6 @@ const ChatContainer = () => {
                 isMe ? "justify-end" : "justify-start"
               }`}
             >
-              {/* For other user we keep normal row, for me we reverse */}
               <div
                 className={`flex items-end gap-2 ${
                   isMe ? "flex-row-reverse" : "flex-row"

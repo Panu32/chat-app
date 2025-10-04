@@ -1,43 +1,97 @@
-import {  useEffect, useState } from "react";
-import { AuthContext } from "./AuthContextObject";
-import axios from 'axios';
+// context/AuthContext.jsx
+import { useEffect, useState } from "react";
+import { AuthContext } from "./AuthContextObject.jsx";
+import axios from "axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
+import nacl from "tweetnacl";
+import naclUtil from "tweetnacl-util";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL; 
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 axios.defaults.baseURL = backendUrl;
 
-//export const AuthContext = createContext();
+const LOCAL_KP_KEY = "userKeyPair_v1";
+
+const loadOrCreateKeypair = () => {
+    try {
+        const saved = localStorage.getItem(LOCAL_KP_KEY);
+        if (saved) {
+            const obj = JSON.parse(saved);
+            if (obj?.publicKey && obj?.secretKey) return obj;
+        }
+    } catch (e) {
+        // ignore parse errors
+    }
+    const kp = nacl.box.keyPair();
+    const obj = {
+        publicKey: naclUtil.encodeBase64(kp.publicKey),
+        secretKey: naclUtil.encodeBase64(kp.secretKey),
+    };
+    localStorage.setItem(LOCAL_KP_KEY, JSON.stringify(obj));
+    return obj;
+};
 
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(localStorage.getItem("token"));
     const [authUser, setAuthUser] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [socket, setSocket] = useState(null);
+    const [messages, setMessages] = useState([]);
+    const [userKeyPair] = useState(loadOrCreateKeypair);
 
-    // Check if user is authenticated and if so, set the user data and connect the socket
+    const uploadPublicKey = async (publicKey) => {
+        if (!publicKey || !token) return;
+        try {
+            await axios.post("/api/messages/upload-key", { publicKey });
+        } catch (err) {
+            console.warn("uploadPublicKey failed:", err?.message || err);
+        }
+    };
+
+    const connectSocket = (userData) => {
+        if (!userData || socket?.connected) return;
+        const newSocket = io(backendUrl, {
+            query: {
+                userId: userData._id,
+            },
+        });
+        newSocket.connect();
+        setSocket(newSocket);
+        newSocket.on("getOnlineUsers", (userIds) => {
+            setOnlineUsers(userIds);
+        });
+        newSocket.on("newMessage", (msg) => {
+            setMessages((prev) => [...prev, msg]);
+        });
+    };
+
     const checkAuth = async () => {
         try {
             const { data } = await axios.get("/api/auth/check");
             if (data.success) {
                 setAuthUser(data.user);
                 connectSocket(data.user);
+                await uploadPublicKey(userKeyPair.publicKey);
             }
         } catch (error) {
-            toast.error(error.message);
+            if (token) toast.error(error.message);
         }
     };
 
-    // Login function to handle user authentication and socket connection
     const login = async (state, credentials) => {
         try {
-            const { data } = await axios.post(`/api/auth/${state}`, credentials);
+            const payload = { ...credentials };
+            if (state === "signup") {
+                payload.publicKey = userKeyPair.publicKey;
+            }
+            const { data } = await axios.post(`/api/auth/${state}`, payload);
             if (data.success) {
                 setAuthUser(data.userData);
                 connectSocket(data.userData);
                 axios.defaults.headers.common["token"] = data.token;
                 setToken(data.token);
                 localStorage.setItem("token", data.token);
+                await uploadPublicKey(userKeyPair.publicKey);
                 toast.success(data.message);
             } else {
                 toast.error(data.message);
@@ -47,7 +101,6 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Logout function to handle user logout and socket disconnection
     const logout = async () => {
         localStorage.removeItem("token");
         setToken(null);
@@ -56,35 +109,23 @@ export const AuthProvider = ({ children }) => {
         axios.defaults.headers.common["token"] = null;
         toast.success("Logged out Successfully");
         if (socket) socket.disconnect();
+        setSocket(null);
+        setMessages([]);
     };
-
-    // Update profile function to handle user profile updates
-    const updateProfile = async (body) => {
+    
+    // FIX: Define the updateProfile function to make the API call.
+    const updateProfile = async (profileData) => {
         try {
-            const { data } = await axios.put("/api/auth/update-profile", body);
+            const { data } = await axios.put("/api/auth/update-profile", profileData);
             if (data.success) {
                 setAuthUser(data.user);
-                toast.success("profile updated successfully");
+                toast.success("Profile updated successfully!");
+            } else {
+                toast.error(data.message);
             }
         } catch (error) {
-            toast.error(error.message);
+            toast.error(error.response?.data?.message || error.message);
         }
-    };
-
-    // Connect socket function to handle socket connection and online users updates
-    const connectSocket = (userData) => {
-        if (!userData || socket?.connected) return;
-        const newSocket = io(backendUrl, {
-            query: {
-                userId: userData._id,
-            }
-        });
-        newSocket.connect();
-        setSocket(newSocket);
-
-        newSocket.on("getOnlineUsers", (userIds) => {
-            setOnlineUsers(userIds);
-        });
     };
 
     useEffect(() => {
@@ -92,22 +133,25 @@ export const AuthProvider = ({ children }) => {
             axios.defaults.headers.common["token"] = token;
             checkAuth();
         }
-        // eslint-disable-next-line
     }, [token]);
+
+    
+
+
 
     const value = {
         axios,
         authUser,
+        setAuthUser,
         onlineUsers,
         socket,
         login,
         logout,
-        updateProfile
+        messages,
+        setMessages,
+        userKeyPair,
+        updateProfile, // FIX: Add the updateProfile function to the context value.
     };
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

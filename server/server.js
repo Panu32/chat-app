@@ -31,7 +31,7 @@ io.on("connection", (socket) => {
   });
 });
 
-app.use(express.json({ limit: "4mb" }));
+app.use(express.json({ limit: "20mb" }));
 app.use(cors());
 
 app.use("/api/status", (req, res) => res.send("server is live"));
