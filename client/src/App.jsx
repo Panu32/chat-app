@@ -6,11 +6,19 @@ import ProfilePage from './pages/ProfilePage'
 import {Toaster} from "react-hot-toast"
 import { AuthContext } from '../context/AuthContextObject'
 
+// Step 1: Import the image as a variable
+import bgImage from './assets/bgImage.svg'
+
 const App = () => {
   const {authUser}  = useContext(AuthContext);
   return (
-    <div className="bg-[url('./src/assets/bgImage.svg')] bg-contain">
-     <Toaster/>
+    // Step 2: Use an inline style for the background image
+    // The build tool will replace `bgImage` with the correct final URL.
+    <div
+      style={{ backgroundImage: `url(${bgImage})` }}
+      className="bg-contain"
+    >
+      <Toaster/>
       <Routes>
         <Route path='/' element={authUser ? <HomePage /> : <Navigate to="/login"/>} />
         <Route path='/login' element={!authUser ? <LoginPage /> :<Navigate to="/" />} />
